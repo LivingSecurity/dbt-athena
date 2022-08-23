@@ -1,11 +1,20 @@
-{% macro validate_get_incremental_strategy(raw_strategy) %}
+{% macro validate_get_incremental_strategy(raw_strategy, format) %}
   {% set invalid_strategy_msg -%}
     Invalid incremental strategy provided: {{ raw_strategy }}
-    Expected one of: 'append', 'insert_overwrite'
+    Expected one of: 'append', 'insert_overwrite', 'merge'
   {%- endset %}
 
-  {% if raw_strategy not in ['append', 'insert_overwrite'] %}
+  {%- set invalid_merge_msg -%}
+  Invalid incremental strategy provided: {{ raw_strategy }}
+  Merge is only supported with Iceberg tables
+  {%- endset %}
+
+  {% if raw_strategy not in ['append', 'insert_overwrite', 'merge'] %}
     {% do exceptions.raise_compiler_error(invalid_strategy_msg) %}
+  {% endif %}
+
+  {% if raw_strategy == 'merge' and format | lower != 'iceberg' %}
+    {% do exceptions.raise_compiler_error(invalid_merge_msg) %}
   {% endif %}
 
   {% do return(raw_strategy) %}

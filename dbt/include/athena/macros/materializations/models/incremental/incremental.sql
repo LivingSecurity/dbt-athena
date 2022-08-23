@@ -9,7 +9,8 @@
   {% endif %}
 
   {% set raw_strategy = config.get('incremental_strategy', default='insert_overwrite') %}
-  {% set strategy = validate_get_incremental_strategy(raw_strategy) %}
+  {% set format = config.get('format') %}
+  {% set strategy = validate_get_incremental_strategy(raw_strategy, format) %}
 
   {% set partitioned_by = config.get('partitioned_by', default=none) %}
   {% set target_relation = this.incorporate(type='table') %}
