@@ -47,7 +47,7 @@
     );
 {%- endmacro %}
 
-{% macro delete_overlapping_partitions(target_relation, tmp_relation, partitioned_by) %}
+{% macro delete_overlapping_partitions(target_relation, tmp_relation, partitioned_by, table_format) %}
   {%- set partitioned_keys = partitioned_by | tojson | replace('\"', '') | replace('[', '') | replace(']', '') -%}
   {% call statement('get_partitions', fetch_result=True) %}
     select distinct {{partitioned_keys}} from {{ tmp_relation }};
@@ -74,9 +74,18 @@
     {%- do partitions.append('(' + single_partition_expression + ')') -%}
   {%- endfor -%}
   {%- for i in range(partitions | length) %}
-    {%- do adapter.clean_up_partitions(target_relation.schema, target_relation.table, partitions[i]) -%}
+    {% if table_format | lower == 'iceberg' %}
+      {% do run_query(iceberg_delete_where(target_relation, partitions[i])) %}
+    {% else %}
+      {%- do adapter.clean_up_partitions(target_relation.schema, target_relation.table, partitions[i]) -%}
+    {% endif %}
   {%- endfor -%}
 {%- endmacro %}
+
+{% macro iceberg_delete_where(target_relation, where_condition) %}
+  delete from {{ target_relation.schema }}.{{ target_relation.table }}
+  where {{ where_condition }}
+{% endmacro %}
 
 {% macro merge_delete_existing(target_relation, tmp_relation, unique_key) %}
   -- This is the way we should be doing this merge, but this doesn't work:
