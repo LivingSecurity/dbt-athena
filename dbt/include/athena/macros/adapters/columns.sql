@@ -46,6 +46,8 @@
     {% else %}
       {%- set safe_type = data_type -%}
     {% endif %}
+  {% elif 'decimal' in data_type %}
+    {%- set safe_type = 'double' -%}
   {% elif data_type in ['boolean', 'double', 'timestamp'] %}
     {%- set safe_type = data_type -%}
   {% else %}
