@@ -56,6 +56,15 @@
       {% do delete_overlapping_partitions(target_relation, tmp_relation, partitioned_by, format) %}
       {% set build_sql = incremental_insert(tmp_relation, target_relation) %}
       {% do to_drop.append(tmp_relation) %}
+  {% elif format | lower == 'iceberg' and strategy == 'insert_overwrite' %}
+      {% set tmp_relation = make_temp_relation(target_relation, tmp_suffix) %}
+      {% if tmp_relation is not none %}
+          {% do adapter.drop_relation(tmp_relation) %}
+      {% endif %}
+      {% do run_query(create_table_as(True, tmp_relation, sql)) %}
+      {% do run_query(merge_delete_all(target_relation)) %}
+      {% set build_sql = incremental_insert(tmp_relation, target_relation) %}
+      {% do to_drop.append(tmp_relation) %}
   {% elif format | lower == 'iceberg' and strategy == 'merge' %}
       {% set tmp_relation = make_temp_relation(target_relation, tmp_suffix) %}
       {% if tmp_relation is not none %}
