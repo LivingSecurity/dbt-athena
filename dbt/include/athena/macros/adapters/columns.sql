@@ -52,3 +52,29 @@
 
   {% do return(safe_type) %}
 {% endmacro %}
+
+{% macro alter_relation_add_remove_columns(relation, add_columns, remove_columns) %}
+
+  {% if add_columns is none %}
+    {% do return('Nothing to do') %}
+  {% endif %}
+
+  {% if remove_columns is not none %}
+    {%- set error_msg = 'Removing columns not supported in Athena' -%}
+    {% do exceptions.raise_compiler_error(error_msg) %}
+  {% endif %}
+
+  {% set sql -%}
+    alter {{ relation.type }} {{ relation }}
+      {% if add_columns != [] %}
+        add columns (
+          {% for column in add_columns %}
+            {{ column.name }} {{ column.data_type }}{{ ',' if not loop.last }}
+          {% endfor %}
+        )
+      {% endif %}
+
+  {%- endset -%}
+
+  {% do run_query(sql) %}
+{% endmacro %}
