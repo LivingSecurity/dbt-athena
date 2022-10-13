@@ -22,7 +22,7 @@
 {% endmacro %}
 
 {% macro safe_athena_type(data_type, is_seed=False) %}
-  {% if 'varchar' in data_type or 'varying' in data_type or data_type == 'text' %}
+  {% if 'varchar' in data_type or 'varying' in data_type or data_type == 'text' or data_type == 'string' %}
     {%- set safe_type = 'string' -%}
   {% elif '[]' in data_type %}
     {%- set inner_type = safe_athena_type(data_type | replace('[]', '')) %}
