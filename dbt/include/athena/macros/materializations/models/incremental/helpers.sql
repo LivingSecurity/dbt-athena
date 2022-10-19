@@ -132,3 +132,7 @@
 {% macro merge_delete_all(target_relation) %}
   delete from {{ target_relation.schema }}.{{ target_relation.table }}
 {% endmacro %}
+
+{% macro num_rows_in_table(target_relation) %}
+  select count(*) from {{ target_relation.schema }}.{{ target_relation.table }}
+{% endmacro %}

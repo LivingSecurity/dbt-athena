@@ -182,6 +182,12 @@ dbt run --select athena --vars='{...}'
 pytest /root/test/integration/athena.dbtspec
 ```
 
+To run the test models in `test/test_models`, run dbt on the container:
+```sh
+cd /root/test/test_models
+env DBT_PROFILES_DIR=.dbt dbt run --select <model_name>
+```
+
 To test changes to the adapter, the Docker image needs to be rebuilt with `docker build -t dbt_dev .` or `docker-compose up --build`.
 
 ### Community
