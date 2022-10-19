@@ -72,51 +72,55 @@
 
       -- stage new changes
       {% do run_query(create_table_as(True, tmp_relation, sql)) %}
+      {% do to_drop.append(tmp_relation) %}
 
       {% if existing_relation is not none %}
           {#-- Process schema changes. Returns dict of changes if successful. Use source columns for upserting/merging --#}
           {% set dest_columns = process_schema_changes(on_schema_change, tmp_relation, existing_relation) %}
       {% endif %}
 
-      {% if partitioned_by is not none %}
-        {% set where_clauses = [] %}
-        {% for column in partitioned_by %}
-          {% set values = run_query(get_partition_values(tmp_relation, column)) %}
-          {% set partition_values = [] %}
-          {% for value in values %}
-            {% do partition_values.append(column ~ "='" ~ value[0] ~ "'") %}
+      {% set tmp_rows = run_query(num_rows_in_table(tmp_relation))[0][0] %}
+      
+      -- only merge if there are rows to insert
+      {% if tmp_rows > 0 %}
+        {% if partitioned_by is not none %}
+          {% set where_clauses = [] %}
+          {% for column in partitioned_by %}
+            {% set values = run_query(get_partition_values(tmp_relation, column)) %}
+            {% set partition_values = [] %}
+            {% for value in values %}
+              {% do partition_values.append(column ~ "='" ~ value[0] ~ "'") %}
+            {% endfor %}
+            {% do where_clauses.append('(' ~ partition_values|join(' OR ') ~ ')') %}
           {% endfor %}
-          {% do where_clauses.append('(' ~ partition_values|join(' OR ') ~ ')') %}
-        {% endfor %}
-        {% if where_clauses | length > 0 %}
-            {% set partition_where_condition = where_clauses|join(' AND ') %}
+          {% set partition_where_condition = where_clauses|join(' AND ') %}
         {% else %}
-            {% set partition_where_condition = none %}
+          {% set partition_where_condition = none %}
         {% endif %}
+
+        {% set new_tmp_insert = merge_insert_existing(target_relation, tmp_relation, unique_key, partition_where_condition) %}
+
+        -- save existing rows NOT being updated in stage to temp table
+        {% set new_suffix = athena__unique_suffix() %}
+        {% set new_tmp_relation = make_temp_relation(this, new_suffix) %}
+        {% do run_query(create_table_as(True, new_tmp_relation, new_tmp_insert)) %}
+
+        -- wipe target table
+        {% if partitioned_by is not none %}
+          {% do run_query(iceberg_delete_where(target_relation, partition_where_condition)) %}
+        {% else %}
+          {% do run_query(merge_delete_all(target_relation)) %}
+        {% endif %}
+
+        -- merge new changes and existing rows
+        {% set build_sql = merge_insert(tmp_relation, new_tmp_relation, target_relation) %}
+
+        -- make_temp_relation isn't setting type correctly?
+        {% do to_drop.append(api.Relation.create(schema=new_tmp_relation.schema, identifier=new_tmp_relation.name, type='table')) %}
       {% else %}
-        {% set partition_where_condition = none %}
+        -- no-op if there's nothing to insert
+        {% set build_sql = "select 1" %}
       {% endif %}
-
-      {% set new_tmp_insert = merge_insert_existing(target_relation, tmp_relation, unique_key, partition_where_condition) %}
-
-      -- save existing rows NOT being updated in stage to temp table
-      {% set new_suffix = athena__unique_suffix() %}
-      {% set new_tmp_relation = make_temp_relation(this, new_suffix) %}
-      {% do run_query(create_table_as(True, new_tmp_relation, new_tmp_insert)) %}
-
-      -- wipe target table
-      {% if partitioned_by is not none %}
-        {% do run_query(iceberg_delete_where(target_relation, partition_where_condition)) %}
-      {% else %}
-        {% do run_query(merge_delete_all(target_relation)) %}
-      {% endif %}
-
-      -- merge new changes and existing rows
-      {% set build_sql = merge_insert(tmp_relation, new_tmp_relation, target_relation) %}
-      {% do to_drop.append(tmp_relation) %}
-
-      -- make_temp_relation isn't setting type correctly?
-      {% do to_drop.append(api.Relation.create(schema=new_tmp_relation.schema, identifier=new_tmp_relation.name, type='table')) %}
   {% else %}
       {% set tmp_relation = make_temp_relation(target_relation, tmp_suffix) %}
       {% if tmp_relation is not none %}
