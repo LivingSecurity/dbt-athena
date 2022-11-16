@@ -2,6 +2,7 @@ import pytest
 
 from .dbt_helper import DbtHelper
 
+
 class TestIcebergModels:
     @pytest.fixture(scope="class")
     def dbt_helper(self):
@@ -66,7 +67,7 @@ class TestIcebergModels:
         assert len(res) == 2
 
         dbt_vars["partition_key"] = "pk_bravo"
-        dbt_helper.run_dbt("run", table_name, dbt_vars=dbt_vars)        
+        dbt_helper.run_dbt("run", table_name, dbt_vars=dbt_vars) 
 
         # two new rows created in pk_bravo partition
         res = dbt_helper.get_table_contents(table_name)

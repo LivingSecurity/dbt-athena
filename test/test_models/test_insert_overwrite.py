@@ -2,6 +2,7 @@ import pytest
 
 from .dbt_helper import DbtHelper
 
+
 class TestInsertOverwrite:
     @pytest.fixture(scope="class")
     def dbt_helper(self):
@@ -9,7 +10,7 @@ class TestInsertOverwrite:
         yield dbt_helper
 
         dbt_helper.drop_database()
-    
+
     def test_overwrite_whole_table(self, dbt_helper):
         table_name = "test_overwrite_whole_table"
 
@@ -45,7 +46,7 @@ class TestInsertOverwrite:
 
         dbt_vars["partition_key"] = "pk_bravo"
         dbt_helper.run_dbt("run", table_name, dbt_vars=dbt_vars)
-        
+
         res = dbt_helper.get_table_contents(table_name)
 
         # two rows inserted, one from each partition
@@ -56,7 +57,7 @@ class TestInsertOverwrite:
         # re-run for pk_bravo with new name
         dbt_vars["name"] = "Sarah Jones"
         dbt_helper.run_dbt("run", table_name, dbt_vars=dbt_vars)
-        
+
         res = dbt_helper.get_table_contents(table_name)
 
         # ensure pk_bravo is updated and pk_alpha is untouched

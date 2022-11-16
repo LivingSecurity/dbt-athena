@@ -4,6 +4,7 @@ import os
 import time
 from subprocess import PIPE, STDOUT, Popen
 
+
 class DbtHelper:
     def __init__(self):
         self.project_root = os.getenv("DBT_PROJECT_ROOT", "/root/test/test_models/dbt_project")
@@ -12,7 +13,7 @@ class DbtHelper:
         self.athena_catalog = os.getenv("DBT_TEST_ATHENA_DATABASE")
         self.athena_database = os.getenv("DBT_TEST_ATHENA_SCHEMA")
         self.athena_workgroup = os.getenv("DBT_TEST_ATHENA_WORKGROUP")
-    
+
     @property
     def athena_conn(self):
         if not self._athena_conn:
@@ -51,7 +52,7 @@ class DbtHelper:
         sub_process.wait()
         if sub_process.returncode > 0:
             raise Exception("dbt failed")
-        
+
         return output
 
     def get_table_contents(self, table_name):
@@ -80,13 +81,13 @@ class DbtHelper:
             if state == "SUCCEEDED":
                 return self._athena_fetch_results(query_id)
             elif state in ("FAILED", "CANCELED"):
-                raise RuntimeError(f"Athena query ended unexpectedly")
+                raise RuntimeError("Athena query ended unexpectedly")
             elif state in ("QUEUED", "RUNNING"):
                 to_sleep = min(max_sleep_seconds, 2**i)
                 time.sleep(to_sleep)
             else:
                 raise ValueError(f"Unhandled query state {state}")
-        raise RuntimeError(f"Query didn't complete after max number of checks")
+        raise RuntimeError("Query didn't complete after max number of checks")
 
     def _athena_fetch_results(self, query_id):
         results = []
@@ -96,7 +97,9 @@ class DbtHelper:
 
         while not done:
             if next_token:
-                res = self.athena_conn.get_query_results(QueryExecutionId=query_id, NextToken=next_token, MaxResults=max_rows)
+                res = self.athena_conn.get_query_results(
+                    QueryExecutionId=query_id, NextToken=next_token, MaxResults=max_rows
+                )
             else:
                 res = self.athena_conn.get_query_results(QueryExecutionId=query_id, MaxResults=max_rows)
 
