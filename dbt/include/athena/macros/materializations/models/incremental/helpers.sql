@@ -55,9 +55,12 @@
   {%- set table = load_result('get_partitions').table -%}
   {%- set rows = table.rows -%}
   {%- set partitions = [] -%}
+  {%- set partition_lists = [] -%}
   {%- for row in rows -%}
     {%- set single_partition = [] -%}
+    {%- set single_partition_list = [] -%}
     {%- for col in row -%}
+      {%- do single_partition_list.append(col|string) -%}
       {%- set column_type = adapter.convert_type(table, loop.index0) -%}
       {%- if column_type == 'integer' -%}
         {%- set value = col|string -%}
@@ -72,14 +75,17 @@
     {%- endfor -%}
     {%- set single_partition_expression = single_partition | join(' and ') -%}
     {%- do partitions.append('(' + single_partition_expression + ')') -%}
+    {%- do partition_lists.append(single_partition_list) -%}
   {%- endfor -%}
-  {%- for i in range(partitions | length) %}
-    {% if table_format | lower == 'iceberg' %}
+  {% if table_format | lower == 'iceberg' %}
+    {%- for i in range(partitions | length) %}
       {% do run_query(iceberg_delete_where(target_relation, partitions[i])) %}
-    {% else %}
-      {%- do adapter.clean_up_partitions(target_relation.schema, target_relation.table, partitions[i]) -%}
-    {% endif %}
-  {%- endfor -%}
+    {%- endfor -%}
+  {% else %}
+    {%- for i in range(partition_lists | length) %}
+      {%- do adapter.clean_up_partitions(target_relation.schema, target_relation.table, partition_lists[i]) -%}
+    {%- endfor -%}
+  {% endif %}
 {%- endmacro %}
 
 {% macro iceberg_delete_where(target_relation, where_condition) %}
