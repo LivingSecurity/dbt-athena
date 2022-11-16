@@ -90,7 +90,6 @@ class AthenaAdapter(SQLAdapter):
                 bucket_name = m.group(1)
                 prefix = m.group(2)
                 s3_bucket = s3_resource.Bucket(bucket_name)
-                # s3_bucket.object_versions.filter(Prefix=prefix).delete()
                 s3_bucket.objects.filter(Prefix=prefix).delete()
 
     @available
