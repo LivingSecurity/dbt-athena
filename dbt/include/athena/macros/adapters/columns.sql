@@ -43,7 +43,9 @@
     {% endif %}
   {% elif 'decimal' in data_type %}
     {%- set safe_type = 'double' -%}
-  {% elif data_type in ['boolean', 'double', 'timestamp', 'bigint'] %}
+  {% elif 'timestamp' in data_type %}
+    {%- set safe_type = 'timestamp' -%}
+  {% elif data_type in ['boolean', 'double', 'bigint'] %}
     {%- set safe_type = data_type -%}
   {% else %}
     {%- set unknown_data_type = 'Unknown data type ' ~ data_type -%}
