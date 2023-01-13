@@ -110,7 +110,14 @@
   with existing as (
     select
     {{ unique_key }} as dbt__unique_key,
-    {{ dest_columns | map(attribute='name') | join(', ') }}
+    {% for column in dest_columns %}
+      {% do log(column) %}
+      {% if column.data_type == "timestamp(6)" %}
+        CAST({{ column.name }} as timestamp(3)) as {{ column.name }}
+      {% else %}
+        {{ column.name }}
+      {% endif %}{{ "," if not loop.last else "" }}
+    {% endfor %}
     from {{ target_relation.schema }}.{{ target_relation.table }}
     {% if partition_where_condition is not none %}
     where {{ partition_where_condition }}
