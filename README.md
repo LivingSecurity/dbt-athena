@@ -6,7 +6,7 @@
 * Support [incremental models][incremental]
   * Support two incremental update strategies: `insert_overwrite` and `append`
   * Does **not** support the use of `unique_key`
-* **Only** supports Athena engine 2
+* **Only** supports Athena engine 2+
   * [Changing Athena Engine Versions][engine-change]
 
 [seeds]: https://docs.getdbt.com/docs/building-a-dbt-project/seeds
